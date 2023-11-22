@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "PingTester": {
+      "commandName": "Project",
+      "commandLineArgs": "60 seznam.cz google.com ffff divadlohaleny.cz"
+    }
+  }
+}
