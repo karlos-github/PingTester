@@ -4,14 +4,14 @@ using System.Net.NetworkInformation;
 
 namespace PingTester
 {
-	internal class PingTester
+	internal class PingTester : IPingTester
 	{
-		static readonly CancellationTokenSource _cts = new();
-		static readonly ConcurrentDictionary<string, List<TestingResult>> _testingResults = new();
+		readonly CancellationTokenSource _cts = new();
+		readonly ConcurrentDictionary<string, List<TestingResult>> _testingResults = new();
 
-		public static async Task DoSomethingEveryTenSeconds(string host)
+		public  async Task DoSomethingEveryTenSeconds(string host)
 		{
-			while (true && !_cts.Token.IsCancellationRequested)
+			while (!_cts.Token.IsCancellationRequested)
 			{
 				var delayTask = Task.Delay(1000);
 				PingHostAsync(host);
@@ -19,7 +19,7 @@ namespace PingTester
 			}
 		}
 
-		static void PingHostAsync(string nameOrAddress)
+		void PingHostAsync(string nameOrAddress)
 		{
 			while (!_cts.Token.IsCancellationRequested)
 			{
@@ -44,7 +44,7 @@ namespace PingTester
 			};
 		}
 
-		public static async Task Run(IEnumerable<string> hosts)
+		public async Task Run(IEnumerable<string> hosts)
 		{
 			List<Task> tasks = new();
 			try

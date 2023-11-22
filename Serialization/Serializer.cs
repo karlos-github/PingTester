@@ -2,7 +2,7 @@
 
 namespace PingTester.Serialization
 {
-	internal class Serializer
+	internal class Serializer : ISerializer
 	{
 		async Task TestWriter(Stream stream)
 		{
@@ -24,7 +24,7 @@ namespace PingTester.Serialization
 			}
 		}
 
-		public static void CreateOutputFile(IEnumerable<TestPing> testPings)
+		public void CreateOutputFile(IEnumerable<TestPing> testPings)
 		{
 			try
 			{

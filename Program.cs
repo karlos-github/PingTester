@@ -1,11 +1,18 @@
 ﻿using PingTester.Serialization;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace PingTester
 {
 	internal class Program
 	{
+		static ISerializer _serializer;
+		static IPingTester _pingTester;
+
 		static async Task Main(string[] args)
 		{
+			Init();
+
 			#region T#1 input args
 			//TODO- 0#1 additional options for output, serialization, (factory????)
 			if (args.Length == 0)
@@ -24,13 +31,13 @@ namespace PingTester
 
 			var testData = new List<TestPing>();
 			setting.Ips.ToList().ForEach(ip => testData.Add(new TestPing(ipAddress: ip, testingResults: new List<TestingResult>())));
-			Serializer.CreateOutputFile(testData);
+			_serializer.CreateOutputFile(testData);
 
 			#endregion
 
 			#region PingTesting
 
-			await PingTester.Run(setting.Ips);
+			await _pingTester.Run(setting.Ips);
 
 			#endregion
 
@@ -40,6 +47,19 @@ namespace PingTester
 			foreach (var ip in setting.Ips)
 				Console.WriteLine($"{ip}");
 #endif
+		}
+
+		static void Init()
+		{
+			IHost _host = Host.CreateDefaultBuilder().ConfigureServices(
+				service =>
+				{
+					service.AddSingleton<ISerializer, Serializer>();
+					service.AddSingleton<IPingTester, PingTester>();
+				}).Build();
+
+			_serializer = _host.Services.GetRequiredService<ISerializer>();
+			_pingTester = _host.Services.GetRequiredService<IPingTester>();
 		}
 	}
 }
