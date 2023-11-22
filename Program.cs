@@ -4,7 +4,7 @@ namespace PingTester
 {
 	internal class Program
 	{
-		static void Main(string[] args)
+		static async Task Main(string[] args)
 		{
 			#region T#1 input args
 			//TODO- 0#1 additional options for output, serialization, (factory????)
@@ -20,12 +20,17 @@ namespace PingTester
 			var setting = new Setting(number, args.Skip(1));
 			#endregion
 
-
 			#region T#4 Creating xml file
 
 			var testData = new List<TestPing>();
-			setting.Ips.ToList().ForEach(ip => testData.Add(new TestPing(ipAddress : ip, testingResults: new List<TestingResult>())));
+			setting.Ips.ToList().ForEach(ip => testData.Add(new TestPing(ipAddress: ip, testingResults: new List<TestingResult>())));
 			Serializer.CreateOutputFile(testData);
+
+			#endregion
+
+			#region PingTesting
+
+			await PingTester.Run(setting.Ips);
 
 			#endregion
 

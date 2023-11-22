@@ -9,7 +9,14 @@ namespace PingTester.Serialization
 	/// </summary>
 	internal class TestingResult
     {
-        public long RoundtripTime { get; }
+		public TestingResult(IPStatus status, long roundtripTime)
+		{
+			Status = status;
+			RoundtripTime = roundtripTime;
+		}
+
+		public long RoundtripTime { get; }
 		public IPStatus IpStatus { get; }
+		public IPStatus Status { get; }
 	}
 }
