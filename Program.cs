@@ -1,5 +1,4 @@
-﻿using System.Collections.Immutable;
-using System.Collections.ObjectModel;
+﻿using PingTester.Serialization;
 
 namespace PingTester
 {
@@ -19,6 +18,15 @@ namespace PingTester
 				throw new ArgumentNullException("Wrong argument for testing time period");
 
 			var setting = new Setting(number, args.Skip(1));
+			#endregion
+
+
+			#region T#4 Creating xml file
+
+			var testData = new List<TestPing>();
+			setting.Ips.ToList().ForEach(ip => testData.Add(new TestPing(ipAddress : ip, testingResults: new List<TestingResult>())));
+			Serializer.CreateOutputFile(testData);
+
 			#endregion
 
 #if DEBUG
