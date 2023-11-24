@@ -2,7 +2,7 @@
   "profiles": {
     "PingTester": {
       "commandName": "Project",
-      "commandLineArgs": "60 divadlohaleny.cz google.com"
+      "commandLineArgs": "60 divadlohaleny.cz divadlohaleny.cz"
     }
   }
 }

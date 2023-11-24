@@ -9,13 +9,13 @@ namespace PingTester
 		readonly CancellationTokenSource _cts = new();
 		BlockingCollection<TestPing> _pings = new();
 
-		public async Task DoSomethingEveryTenSeconds(string host)
+		public async Task PingHostAsync(string host)
 		{
 			BlockingCollection<TestPing> backUp = new BlockingCollection<TestPing>();
 			while (!_cts.Token.IsCancellationRequested)
 			{
 				var delayTask = Task.Delay(1000);
-				PingHostAsync(host, backUp);
+				PingHost(host, backUp);
 				if (backUp.Count > 50)
 				{
 					foreach (var item in backUp.GetConsumingEnumerable().Take(50))
@@ -33,13 +33,13 @@ namespace PingTester
 			}
 		}
 
-		void PingHostAsync(string nameOrAddress, BlockingCollection<TestPing> backUp)
+		void PingHost(string nameOrAddress, BlockingCollection<TestPing> backUp)
 		{
 			while (!_cts.Token.IsCancellationRequested)
 			{
 				using Ping pingSender = new();
 				PingReply reply = pingSender.Send(nameOrAddress, 300);
-				backUp.Add(new TestPing() { IP = nameOrAddress,  Status = reply.Status, RoundtripTime =  reply.RoundtripTime });
+				backUp.Add(new TestPing() { IP = nameOrAddress, Status = reply.Status, RoundtripTime = reply.RoundtripTime });
 			};
 		}
 
@@ -48,16 +48,14 @@ namespace PingTester
 			List<Task> tasks = new();
 			try
 			{
+				_cts.CancelAfter(/*3500*/6000);
+				await ProgressBarUtility.WriteProgressAsync(_cts.Token);
 				if (hosts.Count() > 1)
 				{
-					_cts.CancelAfter(/*3500*/6000);
-					hosts.ToList().ForEach(host => tasks.Add(Task.Run(() => DoSomethingEveryTenSeconds(host), _cts.Token)));
+					hosts.ToList().ForEach(host => tasks.Add(Task.Run(() => PingHostAsync(host), _cts.Token)));
 					await Task.WhenAll(tasks);
 				}
-				else
-				{
-					await Task.Run(() => DoSomethingEveryTenSeconds(hosts.FirstOrDefault()), _cts.Token);
-				}
+				else await Task.Run(() => PingHostAsync(hosts.ElementAt(0)), _cts.Token);
 
 				new Serializer().Serialize(_pings.ToArray());
 			}
