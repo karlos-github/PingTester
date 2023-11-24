@@ -1,25 +1,20 @@
-﻿namespace PingTester.Serialization
+﻿using System.Net.NetworkInformation;
+
+namespace PingTester.Serialization
 {
 	//T#4 --- structure to write to xml file
 
-    /// <summary>
-    /// Result of some pings called to donated IP address for the some period of time
-    /// </summary>
+	/// <summary>
+	/// Result of some pings called to donated IP address for the some period of time
+	/// </summary>
 	internal class TestPing
-    {
-        /// <summary>
-        /// IP address or URL we try to ping
-        /// </summary>
-        public string IP { get; }
-        /// <summary>
-        /// Results of keeping calling ping to some IP
-        /// </summary>
-        public IEnumerable<TestingResult> TestingResults { get; set; }
+	{
+		public Guid Guid { get; set; } = Guid.NewGuid();
+		public string IP { get; set; }
+		public long RoundtripTime { get; set; }
+		public IPStatus Status { get; set; }
+		public string TimeStamp { get; set; } = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff", System.Globalization.CultureInfo.InvariantCulture);
 
-        public TestPing(string ipAddress, IEnumerable<TestingResult> testingResults)
-        {
-            IP = ipAddress;
-            TestingResults = testingResults;
-        }
-    }
+		public override string ToString() => $"{IP} {TimeStamp} {Status} {RoundtripTime} {Guid}";
+	}
 }

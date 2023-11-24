@@ -1,13 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace PingTester.Serialization
+﻿namespace PingTester.Serialization
 {
 	internal interface ISerializer
 	{
-		void CreateOutputFile(IEnumerable<TestPing> testPings);
+		#region Obsolate
+		//void CreateOutputFile(IEnumerable<TestPing> testPings);
+		#endregion
+
+		void Serialize(TestPing[] testPings);
 	}
 }

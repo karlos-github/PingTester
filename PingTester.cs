@@ -7,40 +7,39 @@ namespace PingTester
 	internal class PingTester : IPingTester
 	{
 		readonly CancellationTokenSource _cts = new();
-		readonly ConcurrentDictionary<string, List<TestingResult>> _testingResults = new();
+		BlockingCollection<TestPing> _pings = new();
 
-		public  async Task DoSomethingEveryTenSeconds(string host)
+		public async Task DoSomethingEveryTenSeconds(string host)
 		{
+			BlockingCollection<TestPing> backUp = new BlockingCollection<TestPing>();
 			while (!_cts.Token.IsCancellationRequested)
 			{
 				var delayTask = Task.Delay(1000);
-				PingHostAsync(host);
+				PingHostAsync(host, backUp);
+				if (backUp.Count > 50)
+				{
+					foreach (var item in backUp.GetConsumingEnumerable().Take(50))
+					{
+						_pings.Add(item);
+					}
+				}
 				await delayTask;
+			}
+
+			backUp.CompleteAdding();
+			foreach (var item in backUp.GetConsumingEnumerable())
+			{
+				_pings.Add(item);
 			}
 		}
 
-		void PingHostAsync(string nameOrAddress)
+		void PingHostAsync(string nameOrAddress, BlockingCollection<TestPing> backUp)
 		{
 			while (!_cts.Token.IsCancellationRequested)
 			{
 				using Ping pingSender = new();
 				PingReply reply = pingSender.Send(nameOrAddress, 300);
-				if (reply is { Status: IPStatus.Success })
-				{
-					Console.WriteLine($"_______________________________running {DateTime.Now.Second}_________________________.");
-					Console.WriteLine($"\n{_cts.Token.IsCancellationRequested}\n");
-					Console.WriteLine("www: {0}", nameOrAddress);
-					Console.WriteLine("Status: {0}", reply.Status);
-					Console.WriteLine("Address: {0}", reply.Address.ToString());
-					Console.WriteLine("RoundTrip time: {0}", reply.RoundtripTime);
-
-					if (_testingResults.ContainsKey(nameOrAddress))
-					{
-						if (_testingResults.TryGetValue(nameOrAddress, out var value))
-							value.Add(new TestingResult(reply.Status, reply.RoundtripTime));
-					}
-					else _testingResults.TryAdd(nameOrAddress, new List<TestingResult>() { new TestingResult(reply.Status, reply.RoundtripTime) });
-				}
+				backUp.Add(new TestPing() { IP = nameOrAddress,  Status = reply.Status, RoundtripTime =  reply.RoundtripTime });
 			};
 		}
 
@@ -49,9 +48,18 @@ namespace PingTester
 			List<Task> tasks = new();
 			try
 			{
-				_cts.CancelAfter(/*3500*/6000);
-				hosts.ToList().ForEach(host => tasks.Add(Task.Run(() => DoSomethingEveryTenSeconds(host), _cts.Token)));
-				await Task.WhenAll(tasks);
+				if (hosts.Count() > 1)
+				{
+					_cts.CancelAfter(/*3500*/6000);
+					hosts.ToList().ForEach(host => tasks.Add(Task.Run(() => DoSomethingEveryTenSeconds(host), _cts.Token)));
+					await Task.WhenAll(tasks);
+				}
+				else
+				{
+					await Task.Run(() => DoSomethingEveryTenSeconds(hosts.FirstOrDefault()), _cts.Token);
+				}
+
+				new Serializer().Serialize(_pings.ToArray());
 			}
 			catch (Exception)
 			{

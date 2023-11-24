@@ -9,8 +9,11 @@ namespace PingTester
 		static ISerializer _serializer;
 		static IPingTester _pingTester;
 
+		public int[] _register = new int[10];
+
 		static async Task Main(string[] args)
 		{
+			//await InitServiceAsync();
 			Init();
 
 			#region T#1 input args
@@ -25,14 +28,6 @@ namespace PingTester
 				throw new ArgumentNullException("Wrong argument for testing time period");
 
 			var setting = new Setting(number, args.Skip(1));
-			#endregion
-
-			#region T#4 Creating xml file
-
-			var testData = new List<TestPing>();
-			setting.Ips.ToList().ForEach(ip => testData.Add(new TestPing(ipAddress: ip, testingResults: new List<TestingResult>())));
-			_serializer.CreateOutputFile(testData);
-
 			#endregion
 
 			#region PingTesting
@@ -56,10 +51,22 @@ namespace PingTester
 				{
 					service.AddSingleton<ISerializer, Serializer>();
 					service.AddSingleton<IPingTester, PingTester>();
+					//service.AddHostedService<MyHostedService>();
 				}).Build();
 
 			_serializer = _host.Services.GetRequiredService<ISerializer>();
 			_pingTester = _host.Services.GetRequiredService<IPingTester>();
 		}
+
+		//static async Task InitServiceAsync()
+		//{
+		//	await new HostBuilder()
+		//.ConfigureServices((hostContext, services) =>
+		//{
+		//	// Add the hosted service
+		//	services.AddHostedService<MyHostedService>();
+		//})
+		//.RunConsoleAsync();
+		//}
 	}
 }
