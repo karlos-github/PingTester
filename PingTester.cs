@@ -1,4 +1,5 @@
-﻿using PingTester.Serialization;
+﻿using Microsoft.Extensions.Hosting;
+using PingTester.Serialization;
 using System.Collections.Concurrent;
 using System.Net.NetworkInformation;
 
@@ -9,6 +10,17 @@ namespace PingTester
 		readonly CancellationTokenSource _cts = new();
 		BlockingCollection<TestPing> _pings = new();
 
+
+		public async Task CleaningColl()
+		{
+			while (!_cts.Token.IsCancellationRequested)
+			{
+				var delayTask = Task.Delay(2000);
+				Console.WriteLine($"xxxxxxxxxxxxxxxxxxxxxxxxx{_pings.Count}xxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+				await delayTask;
+			}
+		}
+
 		public async Task PingHostAsync(string host)
 		{
 			BlockingCollection<TestPing> backUp = new BlockingCollection<TestPing>();
@@ -16,13 +28,17 @@ namespace PingTester
 			{
 				var delayTask = Task.Delay(1000);
 				PingHost(host, backUp);
-				if (backUp.Count > 50)
-				{
-					foreach (var item in backUp.GetConsumingEnumerable().Take(50))
-					{
-						_pings.Add(item);
-					}
-				}
+				//if (backUp.Count > 10)
+				//{
+				//	foreach (var item in backUp.GetConsumingEnumerable().Take(10))
+				//	{
+				//		_pings.Add(item);
+				//	}
+				//}
+
+				//if (_pings.Count > 50)
+				//	new Serializer().Serialize(_pings.GetConsumingEnumerable().Take(50).ToArray());
+
 				await delayTask;
 			}
 
@@ -49,7 +65,8 @@ namespace PingTester
 			try
 			{
 				_cts.CancelAfter(/*3500*/6000);
-				await ProgressBarUtility.WriteProgressAsync(_cts.Token);
+				//await ProgressBarUtility.WriteProgressAsync(_cts.Token);
+				//await Task.Run(() => CleaningColl());
 				if (hosts.Count() > 1)
 				{
 					hosts.ToList().ForEach(host => tasks.Add(Task.Run(() => PingHostAsync(host), _cts.Token)));
@@ -57,7 +74,8 @@ namespace PingTester
 				}
 				else await Task.Run(() => PingHostAsync(hosts.ElementAt(0)), _cts.Token);
 
-				new Serializer().Serialize(_pings.ToArray());
+				_pings.CompleteAdding();
+				new Serializer().Serialize(_pings.GetConsumingEnumerable().ToArray());
 			}
 			catch (Exception)
 			{
