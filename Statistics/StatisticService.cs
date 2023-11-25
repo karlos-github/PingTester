@@ -17,7 +17,6 @@ namespace PingTester.Statistics
 			{
 				if (_statistics.TryGetValue(key, out var statistic))
 				{
-					double xx = (double)statistic.SuccessStatus / statistic.Sent;
 					Console.WriteLine($"Pinging [{key}] statistics:");
 					Console.WriteLine($"Availability = {(double)statistic.SuccessStatus / statistic.Sent * 100:#.000} %, Sent = {statistic.Sent} packets");
 					Console.WriteLine($"Approximate round trip times in milli - seconds:");
