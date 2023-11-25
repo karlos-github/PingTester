@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.Hosting;
-using PingTester.Serialization;
+﻿using PingTester.Serialization;
 using System.Collections.Concurrent;
 using System.Net.NetworkInformation;
 
@@ -11,15 +10,15 @@ namespace PingTester
 		BlockingCollection<TestPing> _pings = new();
 
 
-		public async Task CleaningColl()
-		{
-			while (!_cts.Token.IsCancellationRequested)
-			{
-				var delayTask = Task.Delay(2000);
-				Console.WriteLine($"xxxxxxxxxxxxxxxxxxxxxxxxx{_pings.Count}xxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
-				await delayTask;
-			}
-		}
+		//public async Task CleaningColl()
+		//{
+		//	while (!_cts.Token.IsCancellationRequested)
+		//	{
+		//		var delayTask = Task.Delay(2000);
+		//		Console.WriteLine($"xxxxxxxxxxxxxxxxxxxxxxxxx{_pings.Count}xxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+		//		await delayTask;
+		//	}
+		//}
 
 		public async Task PingHostAsync(string host)
 		{
@@ -55,7 +54,7 @@ namespace PingTester
 			{
 				using Ping pingSender = new();
 				PingReply reply = pingSender.Send(nameOrAddress, 300);
-				backUp.Add(new TestPing() { IP = nameOrAddress, Status = reply.Status, RoundtripTime = reply.RoundtripTime });
+				backUp.Add(new TestPing() { IP = nameOrAddress, Status = reply.Status, RoundtripTime = Convert.ToInt16(reply.RoundtripTime) });
 			};
 		}
 
@@ -75,7 +74,7 @@ namespace PingTester
 				else await Task.Run(() => PingHostAsync(hosts.ElementAt(0)), _cts.Token);
 
 				_pings.CompleteAdding();
-				new Serializer().Serialize(_pings.GetConsumingEnumerable().ToArray());
+				new SerializerService().Serialize(_pings.GetConsumingEnumerable().ToArray());
 			}
 			catch (Exception)
 			{

@@ -1,9 +1,57 @@
-﻿using System.Xml;
+﻿using System.Net.NetworkInformation;
+using System.Xml;
 
 namespace PingTester.Serialization
 {
-	internal class Serializer : ISerializer
+	internal class SerializerService : ISerializerService
 	{
+		public void Deserialize(out List<TestPing> testPings)
+		{
+			testPings = new List<TestPing>();
+			string[] nameTableItems = { $"{nameof(TestPing.RoundtripTime)}", $"{nameof(TestPing.Status)}", $"{nameof(TestPing)}" };
+			XmlReaderSettings settings = new() { NameTable = new NameTable() };
+			try
+			{
+				var testPing = new TestPing();
+				int counter = 0;
+				using XmlReader reader = XmlReader.Create(@$"{nameof(TestPing)}.xml", settings);
+				while (reader.Read())
+				{
+					if (reader.NodeType != XmlNodeType.Element) continue;
+					if (reader.Name == nameTableItems[0])
+					{
+						testPing.RoundtripTime = Convert.ToInt16(reader.ReadString());
+						counter++;
+					}
+					else if (reader.Name == nameTableItems[1])
+					{
+						testPing.Status = (IPStatus)Enum.Parse(typeof(IPStatus), reader.ReadString());
+						counter++;
+					}
+					else if (reader.Name == nameTableItems[2])
+					{
+						reader.MoveToAttribute($"{nameof(TestPing.IP)}");
+						testPing.IP = reader.GetAttribute($"{nameof(TestPing.IP)}");
+						counter++;
+					}
+
+					if (counter == nameTableItems.Length)
+					{
+						testPings.Add(testPing);
+						testPing = new TestPing();
+						counter = 0;
+					}
+				}
+				reader.Close();
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine(ex.InnerException);
+				throw;
+			}
+		}
+
+
 		public void Serialize(TestPing[] testPings)
 		{
 			try

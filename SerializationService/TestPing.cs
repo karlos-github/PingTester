@@ -11,7 +11,7 @@ namespace PingTester.Serialization
 	{
 		public Guid Guid { get; set; } = Guid.NewGuid();
 		public string IP { get; set; }
-		public long RoundtripTime { get; set; }
+		public int RoundtripTime { get; set; }
 		public IPStatus Status { get; set; }
 		public string TimeStamp { get; set; } = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff", System.Globalization.CultureInfo.InvariantCulture);
 

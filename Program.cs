@@ -1,19 +1,20 @@
 ﻿using PingTester.Serialization;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.DependencyInjection;
+using PingTester.Statistics;
 
 namespace PingTester
 {
 	internal class Program
 	{
-		static ISerializer _serializer;
+		static ISerializerService _serializer;
 		static IPingTester _pingTester;
+		static IStatisticService _statisticService;
 
 		public int[] _register = new int[10];
 
 		static async Task Main(string[] args)
 		{
-			//await InitServiceAsync();
 			Init();
 
 			#region T#1 input args
@@ -36,6 +37,10 @@ namespace PingTester
 
 			#endregion
 
+			#region Final Statistics
+			_statisticService.OutputStatistics();
+			#endregion
+
 #if DEBUG
 			Console.WriteLine($"TimePeriod={setting.TimePeriod}");
 			Console.WriteLine($"Ip addresses: ");
@@ -49,24 +54,14 @@ namespace PingTester
 			IHost _host = Host.CreateDefaultBuilder().ConfigureServices(
 				service =>
 				{
-					service.AddSingleton<ISerializer, Serializer>();
+					service.AddSingleton<ISerializerService, SerializerService>();
 					service.AddSingleton<IPingTester, PingTester>();
-					//service.AddHostedService<MyHostedService>();
+					service.AddSingleton<IStatisticService, StatisticService>();
 				}).Build();
 
-			_serializer = _host.Services.GetRequiredService<ISerializer>();
+			_serializer = _host.Services.GetRequiredService<ISerializerService>();
 			_pingTester = _host.Services.GetRequiredService<IPingTester>();
+			_statisticService = _host.Services.GetRequiredService<IStatisticService>();
 		}
-
-		//static async Task InitServiceAsync()
-		//{
-		//	await new HostBuilder()
-		//.ConfigureServices((hostContext, services) =>
-		//{
-		//	// Add the hosted service
-		//	services.AddHostedService<MyHostedService>();
-		//})
-		//.RunConsoleAsync();
-		//}
 	}
 }
