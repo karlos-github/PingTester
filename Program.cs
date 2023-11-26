@@ -1,6 +1,6 @@
-﻿using PingTester.Serialization;
+﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.DependencyInjection;
+using PingTester.Serialization;
 using PingTester.Statistics;
 
 namespace PingTester
@@ -28,21 +28,16 @@ namespace PingTester
 			if (!int.TryParse(args[0], out int number))
 				throw new ArgumentNullException("Wrong argument for testing time period");
 
-			var setting = new Setting(number, args.Skip(1));
+			var setting = new Setting(number * 1000, args.Skip(1).ToArray());
 			#endregion
 
-			#region PingTesting
+			await _pingTester.Run(setting);
 
-			await _pingTester.Run(setting.Ips);
-
-			#endregion
-
-			#region Final Statistics
 			_statisticService.OutputStatistics();
-			#endregion
 
 #if DEBUG
-			Console.WriteLine($"TimePeriod={setting.TimePeriod}");
+			Console.WriteLine($"Debug mode info :  ");
+			Console.WriteLine($"TimePeriod={setting.Duration}");
 			Console.WriteLine($"Ip addresses: ");
 			foreach (var ip in setting.Ips)
 				Console.WriteLine($"{ip}");
