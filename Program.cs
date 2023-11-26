@@ -31,6 +31,10 @@ namespace PingTester
 			var setting = new Setting(number * 1000, args.Skip(1).ToArray());
 			#endregion
 
+			//Trying to delete serialized data from any previous run
+			if (File.Exists(Path.Combine(Environment.CurrentDirectory, @$"{nameof(TestPing)}.xml")))
+				File.Delete(Path.Combine(Environment.CurrentDirectory, @$"{nameof(TestPing)}.xml"));
+
 			await _pingTester.Run(setting);
 
 			_statisticService.OutputStatistics();
