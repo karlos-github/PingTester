@@ -9,7 +9,7 @@ namespace PingTester.ArgumentService
 					{
 						StatisticsOutputType.console => new ConsoleOutput(),
 						StatisticsOutputType.textfile => new TextFileOutput(),
-						StatisticsOutputType.xmlfile => new XmlFileOutput(),
+						StatisticsOutputType.xmlfile => new ConsoleOutput(),//TODO- implement xml file output
 						_ => throw new ArgumentException("Invalid output type"),
 					};
 
