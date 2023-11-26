@@ -1,5 +1,8 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using PingTester.ArgumentService;
+using PingTester.ArgumentsService;
+using PingTester.OutputService;
 using PingTester.Serialization;
 using PingTester.Statistics;
 
@@ -10,6 +13,7 @@ namespace PingTester
 		static ISerializerService _serializer;
 		static IPingTester _pingTester;
 		static IStatisticService _statisticService;
+		static IOutputStrategyManager _outputStrategyManager;
 
 		public int[] _register = new int[10];
 
@@ -17,19 +21,7 @@ namespace PingTester
 		{
 			Init();
 
-			#region T#1 input args
-			//TODO- 0#1 additional options for output, serialization, (factory????)
-			if (args.Length == 0)
-				throw new ArgumentNullException("Wrong arguments");
-
-			if (args.Length < 2)
-				throw new ArgumentOutOfRangeException("No ip address");
-
-			if (!int.TryParse(args[0], out int number))
-				throw new ArgumentNullException("Wrong argument for testing time period");
-
-			var setting = new Setting(number * 1000, args.Skip(1).ToArray());
-			#endregion
+			var setting = ArgumentParser.Parse(args);
 
 			//Trying to delete serialized data from any previous run
 			if (File.Exists(Path.Combine(Environment.CurrentDirectory, @$"{nameof(TestPing)}.xml")))
@@ -37,7 +29,7 @@ namespace PingTester
 
 			await _pingTester.Run(setting);
 
-			_statisticService.OutputStatistics();
+			_statisticService.OutputStatistics(setting.StatisticsOutput);
 
 #if DEBUG
 			Console.WriteLine($"Debug mode info :  ");
@@ -56,11 +48,13 @@ namespace PingTester
 					service.AddSingleton<ISerializerService, SerializerService>();
 					service.AddSingleton<IPingTester, PingTester>();
 					service.AddSingleton<IStatisticService, StatisticService>();
+					service.AddSingleton<IOutputStrategyManager, OutputStrategyManager>();
 				}).Build();
 
 			_serializer = _host.Services.GetRequiredService<ISerializerService>();
 			_pingTester = _host.Services.GetRequiredService<IPingTester>();
 			_statisticService = _host.Services.GetRequiredService<IStatisticService>();
+			_outputStrategyManager = _host.Services.GetRequiredService<IOutputStrategyManager>();
 		}
 	}
 }

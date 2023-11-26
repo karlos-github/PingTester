@@ -2,6 +2,6 @@
 {
 	internal interface IStatisticService
 	{
-		void OutputStatistics();
+		void OutputStatistics(StatisticsOutputType outputtype);
 	}
 }

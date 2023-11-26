@@ -1,29 +1,27 @@
-﻿using PingTester.Serialization;
+﻿using PingTester.ArgumentService;
+using PingTester.OutputService;
+using PingTester.Serialization;
 
 namespace PingTester.Statistics
 {
 	internal class StatisticService : IStatisticService
 	{
 		ISerializerService _serializer;
+		IOutputStrategyManager _outputStrategyManager;
 		IDictionary<string, PingStatistic> _statistics = new Dictionary<string, PingStatistic>();
 
-		public StatisticService(ISerializerService serializer) => _serializer = serializer;
+		public StatisticService(ISerializerService serializer, IOutputStrategyManager outputStrategyManager)
+		{
+			_serializer = serializer;
+			_outputStrategyManager = outputStrategyManager;
+		}
 
-		public void OutputStatistics()
+		public void OutputStatistics(StatisticsOutputType outputtype)
 		{
 			GetData();
-			Console.Clear();
-			foreach (var key in _statistics.Keys)
-			{
-				if (_statistics.TryGetValue(key, out var statistic))
-				{
-					Console.WriteLine($"Pinging [{key}] statistics:");
-					Console.WriteLine($"Availability = {(double)statistic.SuccessStatus / statistic.Sent * 100:#.000} %, Sent = {statistic.Sent} packets");
-					Console.WriteLine($"Approximate round trip times in milli - seconds:");
-					Console.WriteLine($"Minimum = {statistic.MinimumRoundTrip}ms, Maximum = {statistic.MaximumRoundTrip}ms, Average = {statistic.AvarageRoundTrip}ms");
-					Console.WriteLine();
-				}
-			}
+
+			IOutputStrategy outputStrategy = _outputStrategyManager.CreateOutputStrategy(outputtype);
+			outputStrategy.Output(_statistics);
 		}
 
 		void GetData()
