@@ -45,8 +45,8 @@ namespace PingTester.Statistics
 					if (testPing.RoundtripTime < _statistics[testPing.IP].MinimumRoundTrip)
 						_statistics[testPing.IP].MinimumRoundTrip = testPing.RoundtripTime;
 
-					//TODO- calculate average round trip!!!!!! RoundTripFrequencies
 					_statistics[testPing.IP].AvarageRoundTrip = (int)((_statistics[testPing.IP].MaximumRoundTrip + _statistics[testPing.IP].MinimumRoundTrip) / 2);
+					_statistics[testPing.IP].Availability = (double)_statistics[testPing.IP].SuccessStatus / _statistics[testPing.IP].Sent * 100;
 				}
 				else
 				{

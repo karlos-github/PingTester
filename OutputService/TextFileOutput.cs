@@ -9,10 +9,14 @@ namespace PingTester.ArgumentService
 		{
 			try
 			{
-				if (File.Exists(Path.Combine(Environment.CurrentDirectory, @$"{nameof(TestPing)}_statistics.txt")))
-					File.Delete(Path.Combine(Environment.CurrentDirectory, @$"{nameof(TestPing)}_statistics.txt"));
+				if (File.Exists(Path.Combine(Environment.CurrentDirectory, @$"{nameof(PingStatistic)}.txt")))
+					File.Delete(Path.Combine(Environment.CurrentDirectory, @$"{nameof(PingStatistic)}.txt"));
 
-				using var sw = new StreamWriter(Path.Combine(Environment.CurrentDirectory, @$"{nameof(TestPing)}_statistics.txt"));
+				Console.Clear();
+				Console.WriteLine($@"Output to file : {Environment.CurrentDirectory}\{nameof(PingStatistic)}.txt");
+				Console.WriteLine();
+
+				using var sw = new StreamWriter(Path.Combine(Environment.CurrentDirectory, @$"{nameof(PingStatistic)}.txt"));
 				foreach (var key in statistics.Keys)
 				{
 					if (statistics.TryGetValue(key, out var statistic))
