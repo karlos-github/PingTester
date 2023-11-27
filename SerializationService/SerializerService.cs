@@ -90,9 +90,9 @@ namespace PingTester.Serialization
 			{
 				if (File.Exists(Path.Combine(Environment.CurrentDirectory, @$"{nameof(TestPing)}.xml")))
 				{
-#if DEBUG
-					File.Copy(Path.Combine(Environment.CurrentDirectory, @$"{nameof(TestPing)}.xml"), Path.Combine(Environment.CurrentDirectory, @$"{nameof(TestPing)}_{DateTime.UtcNow.ToString("mm-ss-fff", System.Globalization.CultureInfo.InvariantCulture)}.xml"));
-#endif
+//#if DEBUG
+//					File.Copy(Path.Combine(Environment.CurrentDirectory, @$"{nameof(TestPing)}.xml"), Path.Combine(Environment.CurrentDirectory, @$"{nameof(TestPing)}_{DateTime.UtcNow.ToString("mm-ss-fff", System.Globalization.CultureInfo.InvariantCulture)}.xml"));
+//#endif
 					File.Move(Path.Combine(Environment.CurrentDirectory, @$"{nameof(TestPing)}.xml"), Path.Combine(Environment.CurrentDirectory, @$"{nameof(TestPing)}_.xml"));
 
 					Append(testPings);
