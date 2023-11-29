@@ -11,7 +11,8 @@ Command line arguments follow this rules :
 1.position => duration (obligatory) in seconds
 
 other positions  => URL or IP addresses to ping
-				 => additional parameters to output statistics = values = "console","textfile","xmlfile" prefixed with flag string "--output".
+
+last positions => additional parameters to output statistics = "console","textfile","xmlfile" prefixed with flag string "--output".
 
 Each argument is devided by white space
 
@@ -19,8 +20,4 @@ Examples of correct input parameters:
 
 "60 seznam.cz google.com"
 
-"60  --output textfile seznam.cz google.com"
-
 "90  seznam.cz google.com --output textfile"
-
-"120  seznam.cz --output console google.com"

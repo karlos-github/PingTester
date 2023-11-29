@@ -1,4 +1,5 @@
-﻿using PingTester.Serialization;
+﻿using Microsoft.Extensions.Hosting;
+using PingTester.Serialization;
 using System.Collections.Concurrent;
 using System.Net.NetworkInformation;
 
@@ -6,7 +7,17 @@ namespace PingTester
 {
 	internal class PingTester : IPingTester
 	{
+		ISerializerService _serializerService;
 		ConcurrentQueue<TestPing> _pingQueue = new ConcurrentQueue<TestPing>();
+		const int PING_FREQUENCY = 100;
+		const int DEFAULT_TIMEOUT = 300;//in ms
+		const int ITEMS_SERIALIZE = 200;
+		const int TIMEOUT_SERIALIZE = 3000;//in ms
+
+		public PingTester(ISerializerService serializerService)
+		{
+			_serializerService = serializerService;
+		}
 
 		async Task PingHostAsync(string host, CancellationToken cancellationToken)
 		{
@@ -14,60 +25,68 @@ namespace PingTester
 			{
 				while (!cancellationToken.IsCancellationRequested)
 				{
-					var delayTask = Task.Delay(new Setting().PingFrequency);
+					var delayTask = Task.Delay(PING_FREQUENCY, CancellationToken.None);
 					using Ping pingSender = new();
 					if (!cancellationToken.IsCancellationRequested)
 					{
-						PingReply reply = pingSender.Send(host, new Setting().DefaultTimeOut);
-						_pingQueue.Enqueue(new TestPing() { IP = host, Status = reply.Status, RoundtripTime = Convert.ToInt16(reply.RoundtripTime) });
+						PingReply reply = pingSender.Send(host, DEFAULT_TIMEOUT);
+						_pingQueue.Enqueue(new TestPing() { IP = host, Status = reply.Status, RoundtripTime = Convert.ToInt32(reply.RoundtripTime) });
 					}
 					await delayTask;
 				};
 			}
-			catch (OperationCanceledException ex)
+			catch (Exception ex) when (ex is not OperationCanceledException)
 			{
 				Console.WriteLine($"{host} exception {ex.InnerException}.");
 			}
 		}
 
-		void SavingItems(CancellationToken cancellationToken)
+		async void SavingItems(CancellationToken cancellationToken)
 		{
-			while (!cancellationToken.IsCancellationRequested)
+			try
 			{
-				if (_pingQueue.Count > 100)
+				while (!cancellationToken.IsCancellationRequested)
 				{
-					TestPing[] arrTestPing = new TestPing[100];
-					int counter = 0;
-					while (counter < 100)
+					if (_pingQueue.Count > ITEMS_SERIALIZE)
 					{
-						if (_pingQueue.TryDequeue(out var item))
+						TestPing[] arrTestPing = new TestPing[ITEMS_SERIALIZE];
+						int counter = 0;
+						while (counter < ITEMS_SERIALIZE)
 						{
-							arrTestPing[counter] = item;
-							counter++;
+							if (_pingQueue.TryDequeue(out var item))
+							{
+								arrTestPing[counter] = item;
+								counter++;
+							}
 						}
+						_serializerService.Serialize(arrTestPing);
+						//Thread.Sleep(50);
 					}
-					new SerializerService().Serialize(arrTestPing);
-					Thread.Sleep(50);
+					await Task.Delay(TIMEOUT_SERIALIZE, CancellationToken.None);
 				}
+			}
+			catch (Exception ex) when (ex is not OperationCanceledException)
+			{
+				Console.WriteLine($"Exception {ex.InnerException}.");
 			}
 		}
 
 		public async Task Run(Setting setting)
 		{
-			CancellationTokenSource _cts = new();
+			using CancellationTokenSource _cts = new(TimeSpan.FromMilliseconds(setting.Duration));
 			CancellationToken cancellationToken = _cts.Token;
 			var tasks = new List<Task>();
-			for (int i = 0; i < setting.Ips.Length; i++)
+			foreach (var ip in setting.Ips)
 			{
-				tasks.Add(PingHostAsync(setting.Ips[i], cancellationToken));
+				tasks.Add(PingHostAsync(ip, cancellationToken));
 			}
 			tasks.Add(Task.Run(() => ProgressBarUtility.WriteProgress(cancellationToken)));
 			tasks.Add(Task.Run(() => SavingItems(cancellationToken)));
 			try
 			{
-				Task.WhenAll(tasks.ToArray()).Wait(setting.Duration, cancellationToken);
+				await Task.WhenAll(tasks.ToArray());
 
-				new SerializerService().Serialize(_pingQueue.ToArray());
+				_serializerService.Serialize(_pingQueue.ToArray());
 			}
 			catch (AggregateException ex)
 			{
@@ -75,10 +94,6 @@ namespace PingTester
 				{
 					Console.WriteLine($"Task error: {innerException.Message}");
 				}
-			}
-			finally
-			{
-				_cts.Dispose();
 			}
 		}
 	}

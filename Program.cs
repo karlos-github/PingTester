@@ -10,22 +10,18 @@ namespace PingTester
 {
 	internal class Program
 	{
+#pragma warning disable CS8618
 		static ISerializerService _serializer;
 		static IPingTester _pingTester;
 		static IStatisticService _statisticService;
 		static IOutputStrategyManager _outputStrategyManager;
-
-		public int[] _register = new int[10];
+#pragma warning restore CS8618
 
 		static async Task Main(string[] args)
 		{
 			Init();
 
 			var setting = ArgumentParser.Parse(args);
-
-			//Trying to delete serialized data from any previous run
-			if (File.Exists(Path.Combine(Environment.CurrentDirectory, @$"{nameof(TestPing)}.xml")))
-				File.Delete(Path.Combine(Environment.CurrentDirectory, @$"{nameof(TestPing)}.xml"));
 
 			await _pingTester.Run(setting);
 

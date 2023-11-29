@@ -10,9 +10,6 @@ namespace PingTester.ArgumentService
 		{
 			try
 			{
-				if (File.Exists(Path.Combine(Environment.CurrentDirectory, @$"{nameof(PingStatistic)}.xml")))
-					File.Delete(Path.Combine(Environment.CurrentDirectory, @$"{nameof(PingStatistic)}.xml"));
-
 				Console.Clear();
 				Console.WriteLine($@"Output to file : {Environment.CurrentDirectory}\{nameof(PingStatistic)}.xml");
 				Console.WriteLine();

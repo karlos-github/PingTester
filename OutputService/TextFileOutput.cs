@@ -9,9 +9,6 @@ namespace PingTester.ArgumentService
 		{
 			try
 			{
-				if (File.Exists(Path.Combine(Environment.CurrentDirectory, @$"{nameof(PingStatistic)}.txt")))
-					File.Delete(Path.Combine(Environment.CurrentDirectory, @$"{nameof(PingStatistic)}.txt"));
-
 				Console.Clear();
 				Console.WriteLine($@"Output to file : {Environment.CurrentDirectory}\{nameof(PingStatistic)}.txt");
 				Console.WriteLine();
@@ -22,7 +19,7 @@ namespace PingTester.ArgumentService
 					if (statistics.TryGetValue(key, out var statistic))
 					{
 						sw.WriteLine($"Pinging [{key}] statistics:");
-						sw.WriteLine($"Availability = {(double)statistic.SuccessStatus / statistic.Sent * 100:#.000} %, Sent = {statistic.Sent} packets");
+						sw.WriteLine($"Availability = {(statistic.Sent != 0 ? (double)statistic.SuccessStatus / statistic.Sent * 100 : 0):#.000} %, Sent = {statistic.Sent} packets");
 						sw.WriteLine($"Approximate round trip times in milli - seconds:");
 						sw.WriteLine($"Minimum = {statistic.MinimumRoundTrip}ms, Maximum = {statistic.MaximumRoundTrip}ms, Average = {statistic.AvarageRoundTrip}ms");
 						sw.WriteLine();
