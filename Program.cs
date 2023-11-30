@@ -23,10 +23,7 @@ namespace PingTester
 
 			var setting = ArgumentParser.Parse(args);
 
-			Console.Clear();
-			Console.WriteLine("Process is running ..... ");
 			await _pingTester.Run(setting);
-			Console.Clear();
 
 			await _statisticService.OutputStatistics(setting.StatisticsOutput);
 

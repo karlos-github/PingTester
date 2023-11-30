@@ -54,6 +54,8 @@ namespace PingTester
 								arrTestPing[counter] = item;
 								counter++;
 							}
+							else
+								throw new InvalidOperationException("Error reading from Queue!");
 						}
 						await _serializerService.Serialize(arrTestPing);
 					}
@@ -70,28 +72,26 @@ namespace PingTester
 		{
 			Console.Clear();
 			Console.WriteLine("Process is running ..... ");
-
-			using CancellationTokenSource _cts = new(TimeSpan.FromMilliseconds(setting.Duration));
-			CancellationToken cancellationToken = _cts.Token;
-			var tasks = new List<Task>();
-			foreach (var ip in setting.Ips)
-			{
-				tasks.Add(PingHostAsync(ip, cancellationToken));
-			}
-			tasks.Add(Task.Run(() => SavingItems(cancellationToken)));
 			try
 			{
-				await Task.WhenAll(tasks.ToArray());
+				using CancellationTokenSource cts = new(TimeSpan.FromMilliseconds(setting.Duration));
+				CancellationToken cancellationToken = cts.Token;
+				var hosts = setting.Ips.ToArray();
+				Task[] tasks = new Task[hosts.Length + 1];
+				
+				for (int i = 0; i < hosts.Length; i++)
+					tasks[i] = PingHostAsync(hosts[i], cancellationToken);
+				tasks[^1] = SavingItems(cancellationToken);
+
+				await Task.WhenAll(tasks).WaitAsync(TimeSpan.FromMilliseconds(setting.Duration));
 
 				await _serializerService.Serialize(_pingQueue.ToArray());
 				Console.Clear();
 			}
-			catch (AggregateException ex) 
+			catch (Exception ex) when (ex is not OperationCanceledException)
 			{
-				foreach (Exception innerException in ex.InnerExceptions)
-				{
-					Console.WriteLine($"Task error: {innerException.Message}");
-				}
+				Console.Clear();
+				Console.WriteLine($"Exception {ex.InnerException}.");
 			}
 		}
 	}
