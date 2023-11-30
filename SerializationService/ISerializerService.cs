@@ -2,7 +2,7 @@
 {
 	internal interface ISerializerService
 	{
-		void Deserialize(out List<TestPing> testPings);
-		void Serialize(TestPing[] testPings);
+		Task<IEnumerable<TestPing>> Deserialize();
+		Task Serialize(TestPing[] testPings);
 	}
 }

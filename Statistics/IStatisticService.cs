@@ -2,6 +2,6 @@
 {
 	internal interface IStatisticService
 	{
-		void OutputStatistics(StatisticsOutputType outputtype);
+		Task OutputStatistics(StatisticsOutputType outputtype);
 	}
 }

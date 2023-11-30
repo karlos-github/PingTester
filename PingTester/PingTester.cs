@@ -1,5 +1,4 @@
-﻿using Microsoft.Extensions.Hosting;
-using PingTester.Serialization;
+﻿using PingTester.Serialization;
 using System.Collections.Concurrent;
 using System.Net.NetworkInformation;
 
@@ -14,10 +13,7 @@ namespace PingTester
 		const int ITEMS_SERIALIZE = 200;
 		const int TIMEOUT_SERIALIZE = 3000;//in ms
 
-		public PingTester(ISerializerService serializerService)
-		{
-			_serializerService = serializerService;
-		}
+		public PingTester(ISerializerService serializerService) => _serializerService = serializerService;
 
 		async Task PingHostAsync(string host, CancellationToken cancellationToken)
 		{
@@ -41,7 +37,7 @@ namespace PingTester
 			}
 		}
 
-		async void SavingItems(CancellationToken cancellationToken)
+		async Task SavingItems(CancellationToken cancellationToken)
 		{
 			try
 			{
@@ -59,8 +55,7 @@ namespace PingTester
 								counter++;
 							}
 						}
-						_serializerService.Serialize(arrTestPing);
-						//Thread.Sleep(50);
+						await _serializerService.Serialize(arrTestPing);
 					}
 					await Task.Delay(TIMEOUT_SERIALIZE, CancellationToken.None);
 				}
@@ -73,6 +68,9 @@ namespace PingTester
 
 		public async Task Run(Setting setting)
 		{
+			Console.Clear();
+			Console.WriteLine("Process is running ..... ");
+
 			using CancellationTokenSource _cts = new(TimeSpan.FromMilliseconds(setting.Duration));
 			CancellationToken cancellationToken = _cts.Token;
 			var tasks = new List<Task>();
@@ -80,15 +78,15 @@ namespace PingTester
 			{
 				tasks.Add(PingHostAsync(ip, cancellationToken));
 			}
-			tasks.Add(Task.Run(() => ProgressBarUtility.WriteProgress(cancellationToken)));
 			tasks.Add(Task.Run(() => SavingItems(cancellationToken)));
 			try
 			{
 				await Task.WhenAll(tasks.ToArray());
 
-				_serializerService.Serialize(_pingQueue.ToArray());
+				await _serializerService.Serialize(_pingQueue.ToArray());
+				Console.Clear();
 			}
-			catch (AggregateException ex)
+			catch (AggregateException ex) 
 			{
 				foreach (Exception innerException in ex.InnerExceptions)
 				{

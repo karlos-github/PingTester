@@ -1,48 +1,52 @@
-﻿using System.Net.NetworkInformation;
+﻿using Microsoft.Extensions.Logging.Abstractions;
+using System.Net.NetworkInformation;
+using System.Reflection.PortableExecutable;
 using System.Xml;
 
 namespace PingTester.Serialization
 {
 	internal class SerializerService : ISerializerService
 	{
-		public void Deserialize(out List<TestPing> testPings)
+		public async Task<IEnumerable<TestPing>> Deserialize()
 		{
-			testPings = new List<TestPing>();
-			string[] nameTableItems = { $"{nameof(TestPing.RoundtripTime)}", $"{nameof(TestPing.Status)}", $"{nameof(TestPing)}" };
-			XmlReaderSettings settings = new() { NameTable = new NameTable() };
+			const int MAX_ITEMS_READ = 3;
+			var testPings = new List<TestPing>();
+			//string[] nameTableItems = { $"{nameof(TestPing.RoundtripTime)}", $"{nameof(TestPing.Status)}", $"{nameof(TestPing)}" };
+			XmlReaderSettings settings = new() { NameTable = new NameTable(), Async = true };
 			try
 			{
 				var testPing = new TestPing();
 				int counter = 0;
 				using XmlReader reader = XmlReader.Create(@$"{nameof(TestPing)}.xml", settings);
-				while (reader.Read())
+				while (await reader.ReadAsync())
 				{
-					if (reader.NodeType != XmlNodeType.Element) continue;
-					if (reader.Name == nameTableItems[0])
-					{
-						testPing.RoundtripTime = Convert.ToInt16(reader.ReadString());
-						counter++;
-					}
-					else if (reader.Name == nameTableItems[1])
-					{
-						testPing.Status = (IPStatus)Enum.Parse(typeof(IPStatus), reader.ReadString());
-						counter++;
-					}
-					else if (reader.Name == nameTableItems[2])
+					if (reader.NodeType != XmlNodeType.Element && reader.NodeType != XmlNodeType.Text) continue;
+
+					if (reader.Name == nameof(TestPing))
 					{
 						reader.MoveToAttribute($"{nameof(TestPing.IP)}");
 						testPing.IP = reader.GetAttribute($"{nameof(TestPing.IP)}")!;
 						counter++;
 					}
+					else if (reader.Name == nameof(TestPing.Status))
+					{
+						testPing.Status = GetStatus(await reader.ReadElementContentAsStringAsync());
+						counter++;
+					}
+					else if (reader.NodeType == XmlNodeType.Text)
+					{
+						testPing.RoundtripTime = GetRoundTrip(reader.Value);
+						counter++;
+					}
 
-					if (counter == nameTableItems.Length)
+					if (counter == MAX_ITEMS_READ)
 					{
 						testPings.Add(testPing);
 						testPing = new TestPing();
 						counter = 0;
 					}
 				}
-				reader.Close();
+				return testPings;
 			}
 			catch (Exception ex)
 			{
@@ -51,28 +55,26 @@ namespace PingTester.Serialization
 			}
 		}
 
-		void DoSerialize(TestPing[] testPings)
+		IPStatus GetStatus(string input) => Enum.TryParse(typeof(IPStatus), input, out var status) ? (IPStatus)status : IPStatus.Unknown;
+		int GetRoundTrip(string input) => int.TryParse(input, out var roundTrip) ? roundTrip : 0;
+
+		async Task DoSerialize(TestPing[] testPings)
 		{
 			try
 			{
-				using XmlWriter writer = XmlWriter.Create(@$"{nameof(TestPing)}.xml");
-				writer.WriteStartElement($"{nameof(TestPing)}s");
+				using XmlWriter writer = XmlWriter.Create(@$"{nameof(TestPing)}.xml", new XmlWriterSettings() { Async = true });
+				await writer.WriteStartElementAsync(null, $"{nameof(TestPing)}s", null);
 				for (int i = 0; i < testPings.Length; i++)
 				{
-					writer.WriteStartElement($"{nameof(TestPing)}");
-					writer.WriteAttributeString($"{nameof(TestPing.Guid)}", $"{testPings[i].Guid}");
-					writer.WriteAttributeString($"{nameof(TestPing.IP)}", $"{testPings[i].IP}");
-					writer.WriteAttributeString($"{nameof(TestPing.TimeStamp)}", $"{testPings[i].TimeStamp}");
-					writer.WriteStartElement($"{nameof(TestPing.Status)}");
-					writer.WriteString($"{testPings[i].Status}");
-					writer.WriteEndElement();//STatus
-					writer.WriteStartElement($"{nameof(TestPing.RoundtripTime)}");
-					writer.WriteString($"{testPings[i].RoundtripTime}");
-					writer.WriteEndElement();//RoundtripTime
-					writer.WriteEndElement();//TestPing
+					await writer.WriteStartElementAsync(null, $"{nameof(TestPing)}", null);
+					await writer.WriteAttributeStringAsync(null, $"{nameof(TestPing.Guid)}", null, $"{testPings[i].Guid}");
+					await writer.WriteAttributeStringAsync(null, $"{nameof(TestPing.IP)}", null, $"{testPings[i].IP}");
+					await writer.WriteAttributeStringAsync(null, $"{nameof(TestPing.TimeStamp)}", null, $"{testPings[i].TimeStamp}");
+					await writer.WriteElementStringAsync(null, nameof(TestPing.Status), null, $"{testPings[i].Status}");
+					await writer.WriteElementStringAsync(null, $"{nameof(TestPing.RoundtripTime)}", null, $"{testPings[i].RoundtripTime}");
+					await writer.WriteEndElementAsync();//TestPing
 				}
-				writer.WriteEndElement();//TestPings
-				writer.Close();
+				await writer.WriteEndElementAsync();//TestPings
 			}
 			catch (XmlException xmlEx)
 			{
@@ -84,28 +86,28 @@ namespace PingTester.Serialization
 			}
 		}
 
-		public void Serialize(TestPing[] testPings)
+		public async Task Serialize(TestPing[] testPings)
 		{
 			try
 			{
 				if (File.Exists(Path.Combine(Environment.CurrentDirectory, @$"{nameof(TestPing)}.xml")))
 				{
-//#if DEBUG
-//					File.Copy(Path.Combine(Environment.CurrentDirectory, @$"{nameof(TestPing)}.xml"), Path.Combine(Environment.CurrentDirectory, @$"{nameof(TestPing)}_{DateTime.UtcNow.ToString("mm-ss-fff", System.Globalization.CultureInfo.InvariantCulture)}.xml"));
-//#endif
+#if DEBUG
+					File.Copy(Path.Combine(Environment.CurrentDirectory, @$"{nameof(TestPing)}.xml"), Path.Combine(Environment.CurrentDirectory, @$"{nameof(TestPing)}_{DateTime.UtcNow.ToString("mm-ss-fff", System.Globalization.CultureInfo.InvariantCulture)}.xml"));
+#endif
 					File.Move(Path.Combine(Environment.CurrentDirectory, @$"{nameof(TestPing)}.xml"), Path.Combine(Environment.CurrentDirectory, @$"{nameof(TestPing)}_.xml"));
 
-					Append(testPings);
+					await Append(testPings);
 
 					if (File.Exists(Path.Combine(Environment.CurrentDirectory, @$"{nameof(TestPing)}_.xml")))
 						File.Delete(Path.Combine(Environment.CurrentDirectory, @$"{nameof(TestPing)}_.xml"));
 				}
-				else DoSerialize(testPings);
+				else await DoSerialize(testPings);
 			}
 			catch (Exception) { throw; }
 		}
 
-		void Append(TestPing[] testPings)
+		async Task Append(TestPing[] testPings)
 		{
 			try
 			{
@@ -116,21 +118,21 @@ namespace PingTester.Serialization
 				string TimeStampKey = string.Empty;
 				string statusKey = string.Empty;
 				string roundTripKey = string.Empty;
-				using XmlWriter writer = XmlWriter.Create(Path.Combine(Environment.CurrentDirectory, @$"{nameof(TestPing)}.xml"));
-				using XmlReader reader = XmlReader.Create(Path.Combine(Environment.CurrentDirectory, @$"{nameof(TestPing)}_.xml"), new XmlReaderSettings() { NameTable = new NameTable() });
-				while (reader.Read())
+				using XmlWriter writer = XmlWriter.Create(Path.Combine(Environment.CurrentDirectory, @$"{nameof(TestPing)}.xml"), new XmlWriterSettings() { Async = true });
+				using XmlReader reader = XmlReader.Create(Path.Combine(Environment.CurrentDirectory, @$"{nameof(TestPing)}_.xml"), new XmlReaderSettings() { NameTable = new NameTable(), Async = true });
+				while (await reader.ReadAsync())
 				{
 					if (reader.NodeType == XmlNodeType.XmlDeclaration)
 					{
 						//Write declaration
-						writer.WriteStartDocument();
+						await writer.WriteStartDocumentAsync();
 					}
 					else if (reader.NodeType == XmlNodeType.Element)
 					{
 						if (reader.Name == $"{nameof(TestPing)}s")
 						{
 							//Write start TestPings element
-							writer.WriteStartElement($"{nameof(TestPing)}s");
+							await writer.WriteStartElementAsync(null, $"{nameof(TestPing)}s", null);
 						}
 						if (reader.Name == $"{nameof(TestPing)}")
 						{
@@ -141,12 +143,12 @@ namespace PingTester.Serialization
 						}
 						if (reader.Name == $"{nameof(TestPing.Status)}")
 						{
-							statusKey = reader.ReadString();
+							statusKey = await reader.ReadElementContentAsStringAsync();
 							counter++;
 						}
 						if (reader.Name == $"{nameof(TestPing.RoundtripTime)}")
 						{
-							roundTripKey = reader.ReadString();
+							roundTripKey = reader.Value;
 							counter++;
 						}
 					}
@@ -157,44 +159,34 @@ namespace PingTester.Serialization
 							//write a new content
 							for (int i = 0; i < testPings.Length; i++)
 							{
-								writer.WriteStartElement($"{nameof(TestPing)}");
-								writer.WriteAttributeString($"{nameof(TestPing.Guid)}", $"{testPings[i].Guid}");
-								writer.WriteAttributeString($"{nameof(TestPing.IP)}", $"{testPings[i].IP}");
-								writer.WriteAttributeString($"{nameof(TestPing.TimeStamp)}", $"{testPings[i].TimeStamp}");
-								writer.WriteStartElement($"{nameof(TestPing.Status)}");
-								writer.WriteString($"{testPings[i].Status}");
-								writer.WriteEndElement();//STatus
-								writer.WriteStartElement($"{nameof(TestPing.RoundtripTime)}");
-								writer.WriteString($"{testPings[i].RoundtripTime}");
-								writer.WriteEndElement();//RoundtripTime
-								writer.WriteEndElement();//TestPing
+								await writer.WriteStartElementAsync(null, $"{nameof(TestPing)}", null);
+								await writer.WriteAttributeStringAsync(null, $"{nameof(TestPing.Guid)}", null, $"{testPings[i].Guid}");
+								await writer.WriteAttributeStringAsync(null, $"{nameof(TestPing.IP)}", null, $"{testPings[i].IP}");
+								await writer.WriteAttributeStringAsync(null, $"{nameof(TestPing.TimeStamp)}", null, $"{testPings[i].TimeStamp}");
+								await writer.WriteElementStringAsync(null, nameof(TestPing.Status), null, $"{testPings[i].Status}");
+								await writer.WriteElementStringAsync(null, $"{nameof(TestPing.RoundtripTime)}", null, $"{testPings[i].RoundtripTime}");
+								await writer.WriteEndElementAsync();//TestPing
 							}
 							//write ending element
-							writer.WriteEndElement();//TestPings
+							await writer.WriteEndElementAsync();//TestPings
 						}
 					}
 
 					if (counter == MAX_COUNTER)
 					{
 						//writing the whole TestPing element just read from source
-						writer.WriteStartElement($"{nameof(TestPing)}");
-						writer.WriteAttributeString($"{nameof(TestPing.Guid)}", GuidKey);
-						writer.WriteAttributeString($"{nameof(TestPing.IP)}", ipKey);
-						writer.WriteAttributeString($"{nameof(TestPing.TimeStamp)}", TimeStampKey);
-						writer.WriteStartElement($"{nameof(TestPing.Status)}");
-						writer.WriteString(statusKey);
-						writer.WriteEndElement();//STatus
-						writer.WriteStartElement($"{nameof(TestPing.RoundtripTime)}");
-						writer.WriteString(roundTripKey);
-						writer.WriteEndElement();//RoundtripTime
-						writer.WriteEndElement();//TestPing
+						await writer.WriteStartElementAsync(null, $"{nameof(TestPing)}", null);
+						await writer.WriteAttributeStringAsync(null, $"{nameof(TestPing.Guid)}", null, GuidKey);
+						await writer.WriteAttributeStringAsync(null, $"{nameof(TestPing.IP)}", null, ipKey);
+						await writer.WriteAttributeStringAsync(null, $"{nameof(TestPing.TimeStamp)}", null, TimeStampKey);
+						await writer.WriteElementStringAsync(null, nameof(TestPing.Status), null, statusKey);
+						await writer.WriteElementStringAsync(null, $"{nameof(TestPing.RoundtripTime)}", null, roundTripKey);
+						await writer.WriteEndElementAsync();//TestPing
 
 						counter = 0;
 						GuidKey = ipKey = TimeStampKey = roundTripKey = string.Empty;
 					}
 				}
-				reader.Close();
-				writer.Close();
 			}
 			catch (Exception ex)
 			{

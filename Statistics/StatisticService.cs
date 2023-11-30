@@ -16,23 +16,16 @@ namespace PingTester.Statistics
 			_outputStrategyManager = outputStrategyManager;
 		}
 
-		public void OutputStatistics(StatisticsOutputType outputtype)
+		public async Task OutputStatistics(StatisticsOutputType outputtype)
 		{
-			GetData();
-			ClearAnyPreviousOutputs();
+			ProcessData(await _serializer.Deserialize());
+			TryClearPreviousOutputs();
 
 			IOutputStrategy outputStrategy = _outputStrategyManager.CreateOutputStrategy(outputtype);
 			outputStrategy.Output(_statistics);
 		}
 
-		void GetData() 
-		{
-			_serializer.Deserialize(out List<TestPing> testPings);
-
-			ProcessData(testPings);
-		} 
-
-		void ClearAnyPreviousOutputs()
+		void TryClearPreviousOutputs()
 		{
 			//Trying to delete serialized data from any previous run
 			if (File.Exists(Path.Combine(Environment.CurrentDirectory, @$"{nameof(PingStatistic)}.xml")))

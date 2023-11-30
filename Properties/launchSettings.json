@@ -2,7 +2,7 @@
   "profiles": {
     "PingTester": {
         "commandName": "Project",
-        "commandLineArgs": "60  --output console seznam.cz google.com"
+        "commandLineArgs": "50 seznam.cz google.com --output console"
     }
   }
 }
