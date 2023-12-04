@@ -2,56 +2,24 @@
 {
 	internal class ProgressBarUtility
 	{
-		const string _signs = @"-|/";
-
-		static void DoWriteProgress(int progress, bool update = false)
+		public async Task WriteProgressAsync(CancellationToken token)
 		{
-			if (update)
-				Console.Write("\b");
-			Console.Write($"{_signs[progress % _signs.Length]}");
-		}
-
-		public static async Task WriteProgress(CancellationToken token)
-		{
-			Console.WriteLine("Process is running ..... ");
+			const int MAX_PRINTED_DOTS = 3;
+			const int ONE_SECOND = 1000;
+			int printedDots = 1;
+			Console.Write("Please Wait");
 			while (!token.IsCancellationRequested)
 			{
-				try
+				Console.Write(".");
+				await Task.Delay(ONE_SECOND, token);
+				if (printedDots % MAX_PRINTED_DOTS == 0)
 				{
-					var delayTask = Task.Delay(50, token);
-					DoWriteProgress(0);
-					for (var i = 0; i <= 100 && !token.IsCancellationRequested; ++i)
-					{
-						DoWriteProgress(i, true);
-						await delayTask;
-					}
+					for (int i = 0; i < printedDots; i++)
+						Console.Write("\b \b");
+					printedDots = 0;
+					await Task.Delay(ONE_SECOND, token);
 				}
-				catch (Exception ex) when (ex is not OperationCanceledException)
-				{
-
-					throw;
-				}
-
-				Console.Clear();
-				Console.WriteLine("Process is running ..... ");
-			}
-		}
-
-		public static async Task WriteProgressAsync(CancellationToken token)
-		{
-			Console.WriteLine("Process is running ..... ");
-			while (!token.IsCancellationRequested)
-			{
-				var delayTask = Task.Delay(50, token);
-
-				DoWriteProgress(0);
-				for (var i = 0; i <= 100; ++i)
-				{
-					DoWriteProgress(i, true);
-					await delayTask;
-				}
-				Console.Clear();
-				Console.WriteLine("Process is running ..... ");
+				printedDots++;
 			}
 		}
 	}

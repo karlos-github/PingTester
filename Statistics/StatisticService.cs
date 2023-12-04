@@ -16,9 +16,9 @@ namespace PingTester.Statistics
 			_outputStrategyManager = outputStrategyManager;
 		}
 
-		public async Task OutputStatistics(StatisticsOutputType outputtype)
+		public async Task OutputStatisticsAsync(StatisticsOutputType outputtype)
 		{
-			ProcessData(await _serializer.Deserialize());
+			ProcessData(await _serializer.DeserializeAsync());
 			TryClearPreviousOutputs();
 
 			IOutputStrategy outputStrategy = _outputStrategyManager.CreateOutputStrategy(outputtype);
@@ -49,7 +49,7 @@ namespace PingTester.Statistics
 					if (testPing.RoundtripTime < _statistics[testPing.IP].MinimumRoundTrip)
 						_statistics[testPing.IP].MinimumRoundTrip = testPing.RoundtripTime;
 
-					_statistics[testPing.IP].AvarageRoundTrip = (int)((_statistics[testPing.IP].MaximumRoundTrip + _statistics[testPing.IP].MinimumRoundTrip) / 2);
+					_statistics[testPing.IP].AvarageRoundTrip = (_statistics[testPing.IP].MaximumRoundTrip + _statistics[testPing.IP].MinimumRoundTrip) / 2;
 					_statistics[testPing.IP].Availability = (double)_statistics[testPing.IP].SuccessStatus / _statistics[testPing.IP].Sent * 100;
 				}
 				else

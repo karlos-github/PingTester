@@ -23,9 +23,9 @@ namespace PingTester
 
 			var setting = ArgumentParser.Parse(args);
 
-			await _pingTester.Run(setting);
+			await _pingTester.RunAsync(setting);
 
-			await _statisticService.OutputStatistics(setting.StatisticsOutput);
+			await _statisticService.OutputStatisticsAsync(setting.StatisticsOutput);
 
 #if DEBUG
 			Console.WriteLine($"Debug mode info :  ");

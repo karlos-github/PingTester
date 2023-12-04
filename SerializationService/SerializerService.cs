@@ -1,13 +1,11 @@
-﻿using Microsoft.Extensions.Logging.Abstractions;
-using System.Net.NetworkInformation;
-using System.Reflection.PortableExecutable;
+﻿using System.Net.NetworkInformation;
 using System.Xml;
 
 namespace PingTester.Serialization
 {
 	internal class SerializerService : ISerializerService
 	{
-		public async Task<IEnumerable<TestPing>> Deserialize()
+		public async Task<IEnumerable<TestPing>> DeserializeAsync()
 		{
 			const int MAX_ITEMS_READ = 3;
 			var testPings = new List<TestPing>();
@@ -58,7 +56,7 @@ namespace PingTester.Serialization
 		IPStatus GetStatus(string input) => Enum.TryParse(typeof(IPStatus), input, out var status) ? (IPStatus)status : IPStatus.Unknown;
 		int GetRoundTrip(string input) => int.TryParse(input, out var roundTrip) ? roundTrip : 0;
 
-		async Task DoSerialize(TestPing[] testPings)
+		async Task DoSerializeAsync(TestPing[] testPings)
 		{
 			try
 			{
@@ -86,28 +84,31 @@ namespace PingTester.Serialization
 			}
 		}
 
-		public async Task Serialize(TestPing[] testPings)
+		public async Task SerializeAsync(TestPing[] testPings)
 		{
 			try
 			{
 				if (File.Exists(Path.Combine(Environment.CurrentDirectory, @$"{nameof(TestPing)}.xml")))
 				{
 #if DEBUG
-					File.Copy(Path.Combine(Environment.CurrentDirectory, @$"{nameof(TestPing)}.xml"), Path.Combine(Environment.CurrentDirectory, @$"{nameof(TestPing)}_{DateTime.UtcNow.ToString("mm-ss-fff", System.Globalization.CultureInfo.InvariantCulture)}.xml"));
+					File.Copy(
+						Path.Combine(Environment.CurrentDirectory, @$"{nameof(TestPing)}.xml"), 
+						Path.Combine(Environment.CurrentDirectory, @$"{nameof(TestPing)}_{DateTime.UtcNow.ToString("mm-ss-fff", System.Globalization.CultureInfo.InvariantCulture)}.xml")
+						);
 #endif
 					File.Move(Path.Combine(Environment.CurrentDirectory, @$"{nameof(TestPing)}.xml"), Path.Combine(Environment.CurrentDirectory, @$"{nameof(TestPing)}_.xml"));
 
-					await Append(testPings);
+					await AppendAsync(testPings);
 
 					if (File.Exists(Path.Combine(Environment.CurrentDirectory, @$"{nameof(TestPing)}_.xml")))
 						File.Delete(Path.Combine(Environment.CurrentDirectory, @$"{nameof(TestPing)}_.xml"));
 				}
-				else await DoSerialize(testPings);
+				else await DoSerializeAsync(testPings);
 			}
-			catch (Exception) { throw; }
+			catch (Exception ex) { Console.WriteLine(ex.InnerException); throw; }
 		}
 
-		async Task Append(TestPing[] testPings)
+		async Task AppendAsync(TestPing[] testPings)
 		{
 			try
 			{

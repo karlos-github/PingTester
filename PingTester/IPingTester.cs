@@ -2,6 +2,6 @@
 {
     internal interface IPingTester
     {
-        Task Run(Setting setting);
+        Task RunAsync(Setting setting);
     }
 }
